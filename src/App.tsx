@@ -30,6 +30,7 @@ type Page =
   | "compare";
 
 export default function App() {
+  // Updated theme system with system detection
   const [currentPage, setCurrentPage] =
     useState<Page>("summary");
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
