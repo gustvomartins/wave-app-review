@@ -21,9 +21,9 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "summary", label: "Resumo", icon: BarChart3 },
-  { id: "reviews", label: "Reviews", icon: MessageSquare },
+  { id: "reviews", label: "Opiniões", icon: MessageSquare },
   { id: "ratings", label: "Avaliações", icon: Star },
-  { id: "sentiment", label: "Sentimento", icon: Heart },
+  { id: "sentiment", label: "Sentimentos", icon: Heart },
   { id: "compare", label: "Comparar", icon: GitCompare },
 ];
 
