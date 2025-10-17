@@ -31,6 +31,7 @@ type Page =
 
 export default function App() {
   // Updated theme system with system detection
+  // Force cache refresh
   const [currentPage, setCurrentPage] =
     useState<Page>("summary");
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
