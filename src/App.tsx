@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { SummaryPage } from "./components/SummaryPage";
 import { ReviewsPageNew } from "./components/ReviewsPageNew";
@@ -17,7 +17,6 @@ import {
   AppDetails,
 } from "./utils/api";
 import { Card } from "./components/ui/card";
-import { Analytics } from "@vercel/analytics/react"
 
 type Page =
   | "summary"
@@ -231,9 +230,6 @@ export default function App() {
         store="playstore"
         onAppSelect={handlePlayStoreSelect}
       />
-      
-      {/* Vercel Analytics */}
-      <Analytics />
     </div>
   );
 }
