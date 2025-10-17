@@ -31,7 +31,8 @@ type Page =
 
 export default function App() {
   // Updated theme system with system detection
-  // Force cache refresh
+  // Force cache refresh - breaking build cache
+  const buildVersion = "v1.2.3";
   const [currentPage, setCurrentPage] =
     useState<Page>("summary");
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
