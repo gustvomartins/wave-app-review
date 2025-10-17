@@ -137,14 +137,13 @@ export default function App() {
               <div>
                 <h1>Boas-vindas</h1>
                 <p className="text-muted-foreground mt-2">
-                  Comece adicionando um app pela barra lateral
+                  Adicione um aplicativo e analise as reviews!
                 </p>
               </div>
               <Card className="p-12 rounded-2xl text-center">
-                <h3 className="mb-2">Nenhum App Adicionado</h3>
+                <h3 className="mb-2">Você ainda não adicionou nenhum app!</h3>
                 <p className="text-muted-foreground">
-                  Use a barra lateral para adicionar apps da App
-                  Store e começar a analisar reviews
+                  Busque um aplicativo na barra lateral e adicione-o para começar a analisar reviews.
                 </p>
               </Card>
             </div>

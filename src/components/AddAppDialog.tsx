@@ -59,12 +59,12 @@ export function AddAppDialog({ open, onClose, store, onAppSelect }: AddAppDialog
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-background">
         <DialogHeader>
           <DialogTitle>
-            Adicionar App {store === "appstore" ? "da App Store" : "do Google Play"}
+            Adicionar aplicativo {store === "appstore" ? "da App Store" : "do Google Play"}
           </DialogTitle>
           <DialogDescription>
             {store === "playstore" 
               ? "Busque por nome ou digite o package ID (ex: br.com.empresa.app)"
-              : "Busque um app para adicionar e analisar seus reviews"
+              : "Busque e selecione um aplicativo para adicionar"
             }
           </DialogDescription>
         </DialogHeader>
@@ -76,7 +76,7 @@ export function AddAppDialog({ open, onClose, store, onAppSelect }: AddAppDialog
             onSearch={handleSearch} 
             placeholder={store === "playstore" 
               ? "Nome do app ou package ID (br.com.empresa.app)..." 
-              : "Buscar app..."
+              : "Buscar aplicativo"
             }
           />
 
