@@ -1,8 +1,8 @@
-import { Waves, BarChart3, MessageSquare, Star, GitCompare, Heart, Moon, Sun, Network, Type, FileText, MessageCircle, Menu, X, Layers } from "lucide-react";
+import React, { useState } from "react";
+import { Waves, BarChart3, MessageSquare, Star, GitCompare, Heart, Moon, Sun, Network, Type, FileText, MessageCircle, Menu, X, Layers, Monitor } from "lucide-react";
 import { AppSlot } from "./AppSlot";
 import { WaveLogo } from "./WaveLogo";
 import type { AppDetails } from "../utils/api";
-import { useState } from "react";
 
 interface SidebarProps {
   currentPage: string;
@@ -15,8 +15,8 @@ interface SidebarProps {
   onAddPlayStore: () => void;
   onRemoveAppStore: () => void;
   onRemovePlayStore: () => void;
-  theme: string;
-  onThemeChange: (theme: string) => void;
+  theme: "light" | "dark";
+  onThemeChange: (theme: "light" | "dark") => void;
 }
 
 const menuItems = [
@@ -101,11 +101,12 @@ export function Sidebar({
               onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
               className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-sidebar-accent transition-colors"
               aria-label="Toggle theme"
+              title={`Current: ${theme === "dark" ? "Dark" : "Light"}`}
             >
               {theme === "dark" ? (
-                <Sun size={18} className="text-sidebar-foreground" />
-              ) : (
                 <Moon size={18} className="text-sidebar-foreground" />
+              ) : (
+                <Sun size={18} className="text-sidebar-foreground" />
               )}
             </button>
           </div>

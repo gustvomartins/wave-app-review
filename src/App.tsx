@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { SummaryPage } from "./components/SummaryPage";
 import { ReviewsPageNew } from "./components/ReviewsPageNew";
@@ -32,7 +32,19 @@ type Page =
 export default function App() {
   const [currentPage, setCurrentPage] =
     useState<Page>("summary");
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
+    const saved = localStorage.getItem("theme");
+    return (saved as "light" | "dark" | "system") || "system";
+  });
+  const [isUserOverride, setIsUserOverride] = useState(() => {
+    return localStorage.getItem("theme") !== null;
+  });
+  const [actualTheme, setActualTheme] = useState<"light" | "dark">(() => {
+    if (theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return theme;
+  });
 
   // App slots
   const [appStoreData, setAppStoreData] =
@@ -52,22 +64,43 @@ export default function App() {
   const [showPlayStoreDialog, setShowPlayStoreDialog] =
     useState(false);
 
-  useEffect(() => {
-    // Set initial theme
-    if (theme === "dark") {
+  // Function to get the actual theme (resolves system preference)
+  const getActualTheme = (): "light" | "dark" => {
+    if (theme === "system") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return theme;
+  };
+
+  // Function to apply theme to document
+  const applyTheme = () => {
+    const currentActualTheme = getActualTheme();
+    setActualTheme(currentActualTheme);
+    if (currentActualTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
+    }
+  };
+
+  useEffect(() => {
+    // Apply theme on mount and when theme changes
+    applyTheme();
+    
+    // Listen for system theme changes when using system preference
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => applyTheme();
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
     }
   }, [theme]);
 
-  const handleThemeChange = (newTheme: string) => {
+  const handleThemeChange = (newTheme: "light" | "dark") => {
     setTheme(newTheme);
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    setIsUserOverride(true);
+    localStorage.setItem("theme", newTheme);
+    applyTheme();
   };
 
   const handleAppStoreSelect = async (app: AppResult) => {
@@ -125,7 +158,7 @@ export default function App() {
         onAddPlayStore={() => setShowPlayStoreDialog(true)}
         onRemoveAppStore={() => setAppStoreData(null)}
         onRemovePlayStore={() => setPlayStoreData(null)}
-        theme={theme}
+        theme={actualTheme}
         onThemeChange={handleThemeChange}
       />
 
