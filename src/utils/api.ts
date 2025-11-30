@@ -1,4 +1,4 @@
-import { projectId, publicAnonKey } from './supabase/info.tsx';
+import { projectId, publicAnonKey } from './supabase/info';
 
 const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-f4aa3b54`;
 
@@ -7,20 +7,20 @@ export async function testServerConnection(): Promise<{ ok: boolean; error?: str
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
+
     const response = await fetch(`${API_BASE}/health`, {
       headers: {
         'Authorization': `Bearer ${publicAnonKey}`,
       },
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       return { ok: false, error: `Server returned ${response.status}` };
     }
-    
+
     return { ok: true };
   } catch (error) {
     if (error instanceof Error) {
@@ -74,7 +74,7 @@ export async function searchApps(query: string, store: string = "both"): Promise
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-    
+
     const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&store=${store}`, {
       headers: {
         'Authorization': `Bearer ${publicAnonKey}`,
@@ -116,7 +116,7 @@ export async function getAppDetails(store: string, id: string): Promise<AppDetai
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for details
-    
+
     const storeParam = store === "App Store" ? "appstore" : "playstore";
     const response = await fetch(`${API_BASE}/app/${storeParam}/${id}`, {
       headers: {
