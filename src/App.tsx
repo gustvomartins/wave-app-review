@@ -113,7 +113,11 @@ export default function App() {
   // Persist app data
   useEffect(() => {
     if (appStoreData) {
-      localStorage.setItem("appStoreData", JSON.stringify(appStoreData));
+      try {
+        localStorage.setItem("appStoreData", JSON.stringify(appStoreData));
+      } catch (e) {
+        console.error("Failed to save appStoreData to localStorage", e);
+      }
     } else {
       localStorage.removeItem("appStoreData");
     }
@@ -121,7 +125,11 @@ export default function App() {
 
   useEffect(() => {
     if (playStoreData) {
-      localStorage.setItem("playStoreData", JSON.stringify(playStoreData));
+      try {
+        localStorage.setItem("playStoreData", JSON.stringify(playStoreData));
+      } catch (e) {
+        console.error("Failed to save playStoreData to localStorage", e);
+      }
     } else {
       localStorage.removeItem("playStoreData");
     }
