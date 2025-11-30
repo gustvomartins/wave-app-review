@@ -1,6 +1,6 @@
 # Wave - App Review
 
-Wave is a powerful tool designed to analyze and visualize user reviews from both the Apple App Store and Google Play Store. It provides deep insights into user sentiment, ratings, and feedback trends through advanced clustering and comparison features.
+App Review is a powerful tool designed to analyze and visualize user reviews from both the Apple App Store and Google Play Store. It provides deep insights into user sentiment, ratings, and feedback trends through advanced clustering and comparison features.
 
 The original design is available on [Figma](https://www.figma.com/design/drZ3dLvc77fuzaC65Sedsj/Wave---App-Review).
 
