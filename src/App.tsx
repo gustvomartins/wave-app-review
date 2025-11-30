@@ -50,10 +50,14 @@ export default function App() {
   });
 
   // App slots
-  const [appStoreData, setAppStoreData] =
-    useState<AppDetails | null>(null);
-  const [playStoreData, setPlayStoreData] =
-    useState<AppDetails | null>(null);
+  const [appStoreData, setAppStoreData] = useState<AppDetails | null>(() => {
+    const saved = localStorage.getItem("appStoreData");
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [playStoreData, setPlayStoreData] = useState<AppDetails | null>(() => {
+    const saved = localStorage.getItem("playStoreData");
+    return saved ? JSON.parse(saved) : null;
+  });
 
   // Loading states
   const [isLoadingAppStore, setIsLoadingAppStore] =
@@ -89,7 +93,7 @@ export default function App() {
   useEffect(() => {
     // Apply theme on mount and when theme changes
     applyTheme();
-    
+
     // Listen for system theme changes when using system preference
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -105,6 +109,23 @@ export default function App() {
     localStorage.setItem("theme", newTheme);
     applyTheme();
   };
+
+  // Persist app data
+  useEffect(() => {
+    if (appStoreData) {
+      localStorage.setItem("appStoreData", JSON.stringify(appStoreData));
+    } else {
+      localStorage.removeItem("appStoreData");
+    }
+  }, [appStoreData]);
+
+  useEffect(() => {
+    if (playStoreData) {
+      localStorage.setItem("playStoreData", JSON.stringify(playStoreData));
+    } else {
+      localStorage.removeItem("playStoreData");
+    }
+  }, [playStoreData]);
 
   const handleAppStoreSelect = async (app: AppResult) => {
     setIsLoadingAppStore(true);
