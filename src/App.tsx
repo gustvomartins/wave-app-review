@@ -32,7 +32,7 @@ type Page =
 export default function App() {
   // Updated theme system with system detection
   // Force cache refresh - breaking build cache
-  const buildVersion = "v1.2.3";
+  const buildVersion = "v1.2.4-debug";
   const [currentPage, setCurrentPage] =
     useState<Page>("summary");
   const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
@@ -192,6 +192,7 @@ export default function App() {
         onRemovePlayStore={() => setPlayStoreData(null)}
         theme={actualTheme}
         onThemeChange={handleThemeChange}
+        buildVersion={buildVersion}
       />
 
       {/* Main Content */}

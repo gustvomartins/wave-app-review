@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Waves, BarChart3, MessageSquare, Star, GitCompare, Heart, Moon, Sun, Network, Type, FileText, MessageCircle, Menu, X, Layers, Monitor } from "lucide-react";
+import { BarChart3, MessageSquare, Star, GitCompare, Heart, Moon, Sun, Network, Type, MessageCircle, Menu, X, Layers } from "lucide-react";
 import { AppSlot } from "./AppSlot";
 import { WaveLogo } from "./WaveLogo";
 import type { AppDetails } from "../utils/api";
@@ -17,6 +17,7 @@ interface SidebarProps {
   onRemovePlayStore: () => void;
   theme: "light" | "dark";
   onThemeChange: (theme: "light" | "dark") => void;
+  buildVersion: string;
 }
 
 const menuItems = [
@@ -47,6 +48,7 @@ export function Sidebar({
   onRemovePlayStore,
   theme,
   onThemeChange,
+  buildVersion,
 }: SidebarProps) {
   const hasAnyApp = appStoreData || playStoreData;
   const hasBothApps = appStoreData && playStoreData;
@@ -74,132 +76,131 @@ export function Sidebar({
 
       {/* Overlay for mobile */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen w-80 bg-sidebar overflow-y-auto sidebar-scrollbar z-40 transition-transform duration-300 ${
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
-      <div className="p-6 space-y-6">
-        {/* Logo with Theme Toggle */}
-        <div className="pb-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <WaveLogo size={40} className="text-primary-foreground" />
+      <aside className={`fixed left-0 top-0 h-screen w-80 bg-sidebar overflow-y-auto sidebar-scrollbar z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
+        <div className="p-6 space-y-6">
+          {/* Logo with Theme Toggle */}
+          <div className="pb-4 border-b border-sidebar-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                <WaveLogo size={40} className="text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">App Review</p>
+                <p className="text-muted-foreground text-[14px]">Wave {buildVersion}</p>
+              </div>
+
+              {/* Theme Toggle Button */}
+              <button
+                onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-sidebar-accent transition-colors"
+                aria-label="Toggle theme"
+                title={`Current: ${theme === "dark" ? "Dark" : "Light"}`}
+              >
+                {theme === "dark" ? (
+                  <Moon size={18} className="text-sidebar-foreground" />
+                ) : (
+                  <Sun size={18} className="text-sidebar-foreground" />
+                )}
+              </button>
             </div>
-            <div className="flex-1">
-              <p className="font-medium">App Review</p>
-              <p className="text-muted-foreground text-[14px]">Wave</p>
-            </div>
-            
-            {/* Theme Toggle Button */}
-            <button
-              onClick={() => onThemeChange(theme === "dark" ? "light" : "dark")}
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-sidebar-accent transition-colors"
-              aria-label="Toggle theme"
-              title={`Current: ${theme === "dark" ? "Dark" : "Light"}`}
-            >
-              {theme === "dark" ? (
-                <Moon size={18} className="text-sidebar-foreground" />
-              ) : (
-                <Sun size={18} className="text-sidebar-foreground" />
-              )}
-            </button>
           </div>
-        </div>
 
-        {/* App Slots */}
-        <div className="space-y-4">
-          <p className="text-muted-foreground uppercase tracking-wide text-[12px]">Apps</p>
-          <AppSlot
-            store="appstore"
-            appData={appStoreData}
-            isLoading={isLoadingAppStore}
-            onAddClick={onAddAppStore}
-            onRemoveClick={onRemoveAppStore}
-          />
-          <AppSlot
-            store="playstore"
-            appData={playStoreData}
-            isLoading={isLoadingPlayStore}
-            onAddClick={onAddPlayStore}
-            onRemoveClick={onRemovePlayStore}
-            disabled={true}
-          />
-        </div>
+          {/* App Slots */}
+          <div className="space-y-4">
+            <p className="text-muted-foreground uppercase tracking-wide text-[12px]">Apps</p>
+            <AppSlot
+              store="appstore"
+              appData={appStoreData}
+              isLoading={isLoadingAppStore}
+              onAddClick={onAddAppStore}
+              onRemoveClick={onRemoveAppStore}
+            />
+            <AppSlot
+              store="playstore"
+              appData={playStoreData}
+              isLoading={isLoadingPlayStore}
+              onAddClick={onAddPlayStore}
+              onRemoveClick={onRemovePlayStore}
+              disabled={true}
+            />
+          </div>
 
-        {/* Navigation Menu */}
-        {hasAnyApp && (
-          <nav className="space-y-4">
-            <div>
-              <p className="text-muted-foreground uppercase tracking-wide mb-3 text-[12px]">Análise</p>
-              <div className="space-y-1">
-                {menuItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.id;
-                  
-                  // Disable compare if not both apps
-                  const isDisabled = item.id === "compare" && !hasBothApps;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => !isDisabled && handlePageChange(item.id)}
-                      disabled={isDisabled}
-                      className={`
+          {/* Navigation Menu */}
+          {hasAnyApp && (
+            <nav className="space-y-4">
+              <div>
+                <p className="text-muted-foreground uppercase tracking-wide mb-3 text-[12px]">Análise</p>
+                <div className="space-y-1">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.id;
+
+                    // Disable compare if not both apps
+                    const isDisabled = item.id === "compare" && !hasBothApps;
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => !isDisabled && handlePageChange(item.id)}
+                        disabled={isDisabled}
+                        className={`
                         w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all
-                        ${isActive 
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground font-bold' 
-                          : isDisabled
-                          ? 'text-muted-foreground/50 cursor-not-allowed'
-                          : 'hover:bg-sidebar-accent text-sidebar-foreground'
-                        }
+                        ${isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground font-bold'
+                            : isDisabled
+                              ? 'text-muted-foreground/50 cursor-not-allowed'
+                              : 'hover:bg-sidebar-accent text-sidebar-foreground'
+                          }
                       `}
-                    >
-                      <Icon size={20} />
-                      <span className="text-[14px]">{item.label}</span>
-                    </button>
-                  );
-                })}
+                      >
+                        <Icon size={20} />
+                        <span className="text-[14px]">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Clustering Section */}
-            <div>
-              <p className="text-muted-foreground uppercase tracking-wide mb-3 text-[12px]">Agrupamento</p>
-              
-              <div className="space-y-1">
-                {clusteringItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.id;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handlePageChange(item.id)}
-                      className={`
+              {/* Clustering Section */}
+              <div>
+                <p className="text-muted-foreground uppercase tracking-wide mb-3 text-[12px]">Agrupamento</p>
+
+                <div className="space-y-1">
+                  {clusteringItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.id;
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handlePageChange(item.id)}
+                        className={`
                         w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all
-                        ${isActive 
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground font-bold' 
-                          : 'hover:bg-sidebar-accent text-sidebar-foreground'
-                        }
+                        ${isActive
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground font-bold'
+                            : 'hover:bg-sidebar-accent text-sidebar-foreground'
+                          }
                       `}
-                    >
-                      <Icon size={20} />
-                      <span className="text-[14px]">{item.label}</span>
-                    </button>
-                  );
-                })}
+                      >
+                        <Icon size={20} />
+                        <span className="text-[14px]">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </nav>
-        )}
-      </div>
-    </aside>
+            </nav>
+          )}
+        </div>
+      </aside>
     </>
   );
 }
