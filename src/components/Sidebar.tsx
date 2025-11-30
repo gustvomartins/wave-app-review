@@ -17,7 +17,6 @@ interface SidebarProps {
   onRemovePlayStore: () => void;
   theme: "light" | "dark";
   onThemeChange: (theme: "light" | "dark") => void;
-  buildVersion: string;
 }
 
 const menuItems = [
@@ -48,7 +47,6 @@ export function Sidebar({
   onRemovePlayStore,
   theme,
   onThemeChange,
-  buildVersion,
 }: SidebarProps) {
   const hasAnyApp = appStoreData || playStoreData;
   const hasBothApps = appStoreData && playStoreData;
@@ -94,7 +92,7 @@ export function Sidebar({
               </div>
               <div className="flex-1">
                 <p className="font-medium">App Review</p>
-                <p className="text-muted-foreground text-[14px]">Wave {buildVersion}</p>
+                <p className="text-muted-foreground text-[14px]">Wave</p>
               </div>
 
               {/* Theme Toggle Button */}
