@@ -79,10 +79,32 @@ app.get("/make-server-f4aa3b54/search", async (c) => {
       }
     }
 
-    // Google Play search - temporarily disabled (requires Node.js specific APIs)
+    // Google Play search
     if (store === "playstore" || store === "both") {
-      console.log("Google Play search is temporarily disabled");
-      // TODO: Implement Deno-compatible scraping solution
+      try {
+        const gplay = await import("npm:google-play-scraper");
+        const gpResults = await gplay.default.search({
+          term: query,
+          num: 10,
+          country: "br",
+          lang: "pt",
+          throttle: 10,
+        });
+
+        const gpApps = gpResults.map((app: any) => ({
+          id: app.appId,
+          name: app.title,
+          developer: app.developer,
+          icon: app.icon,
+          store: "Google Play" as const,
+          storeUrl: app.url,
+        }));
+
+        results.push(...gpApps);
+        console.log(`Google Play search returned ${gpApps.length} results`);
+      } catch (err) {
+        console.error("Google Play search error:", err);
+      }
     }
 
     return c.json({ results });
@@ -221,9 +243,84 @@ app.get("/make-server-f4aa3b54/app/:store/:id", async (c) => {
         distribution,
       });
     } else if (store === "playstore") {
-      // Google Play - temporarily disabled
-      console.log("Google Play is temporarily disabled");
-      return c.json({ error: "Google Play support is temporarily unavailable" }, 503);
+      try {
+        const gplay = await import("npm:google-play-scraper");
+
+        const appInfo = await gplay.default.app({
+          appId: id,
+          country: "br",
+          lang: "pt",
+        });
+
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        console.log(`Fetching Google Play reviews since ${oneYearAgo.toISOString().split("T")[0]}...`);
+
+        const allReviews: any[] = [];
+        let nextPaginationToken: string | undefined = undefined;
+        let reachedOldReviews = false;
+        const maxBatches = 20; // up to ~2000 reviews
+
+        for (let batch = 0; batch < maxBatches && !reachedOldReviews; batch++) {
+          const { data: pageReviews, nextPaginationToken: nextToken } = await gplay.default.reviews({
+            appId: id,
+            sort: gplay.default.sort.NEWEST,
+            num: 100,
+            country: "br",
+            lang: "pt",
+            paginate: true,
+            nextPaginationToken,
+          });
+
+          if (!pageReviews || pageReviews.length === 0) break;
+
+          for (const r of pageReviews) {
+            const reviewDate = new Date(r.date);
+            if (reviewDate < oneYearAgo) {
+              reachedOldReviews = true;
+              break;
+            }
+            allReviews.push({
+              id: r.id,
+              author: r.userName,
+              rating: r.score,
+              text: r.text || "",
+              date: typeof r.date === "string" ? r.date : new Date(r.date).toISOString(),
+              version: r.version || null,
+            });
+          }
+
+          console.log(`✓ Batch ${batch + 1}: +${pageReviews.length} reviews (Total: ${allReviews.length})`);
+
+          if (!nextToken) break;
+          nextPaginationToken = nextToken;
+        }
+
+        console.log(`✓ Total Google Play reviews fetched (last 12 months): ${allReviews.length}`);
+
+        const distribution = [1, 2, 3, 4, 5].map((stars) => ({
+          stars,
+          count: allReviews.filter((r) => r.rating === stars).length,
+        }));
+
+        return c.json({
+          app: {
+            id: appInfo.appId,
+            name: appInfo.title,
+            developer: appInfo.developer,
+            icon: appInfo.icon,
+            store: "Google Play",
+            storeUrl: appInfo.url,
+            averageRating: appInfo.score || 0,
+            totalReviews: appInfo.ratings || 0,
+          },
+          reviews: allReviews,
+          distribution,
+        });
+      } catch (err) {
+        console.error("Google Play details error:", err);
+        return c.json({ error: "Failed to fetch Google Play app details", details: String(err) }, 500);
+      }
     }
 
     return c.json({ error: "Invalid store" }, 400);
