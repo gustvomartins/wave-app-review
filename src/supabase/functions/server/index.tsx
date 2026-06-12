@@ -21,6 +21,168 @@ function extractJSON(text: string): string {
   return jsonStr;
 }
 
+// ========== Google Play Native Helpers ==========
+
+const GP_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept-Language": "pt-BR,pt;q=0.9,en-US,en;q=0.8",
+  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+};
+
+async function gpGetAppPage(appId: string): Promise<{ name: string; developer: string; icon: string; score: number; ratings: number } | null> {
+  try {
+    const resp = await fetch(
+      `https://play.google.com/store/apps/details?id=${encodeURIComponent(appId)}&hl=pt&gl=br`,
+      { headers: GP_HEADERS }
+    );
+    if (!resp.ok) {
+      console.error(`gpGetAppPage: ${resp.status} for ${appId}`);
+      return null;
+    }
+    const html = await resp.text();
+
+    // JSON-LD structured data is the most reliable source
+    const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (jsonLdMatch) {
+      try {
+        const ld = JSON.parse(jsonLdMatch[1]);
+        const images = Array.isArray(ld.image) ? ld.image : [ld.image];
+        return {
+          name: ld.name || appId,
+          developer: ld.author?.name || "Unknown",
+          icon: images[images.length - 1] || "",
+          score: parseFloat(ld.aggregateRating?.ratingValue || "0"),
+          ratings: parseInt(String(ld.aggregateRating?.ratingCount || "0").replace(/\D/g, "")) || 0,
+        };
+      } catch { /* fall through to regex fallbacks */ }
+    }
+
+    // Fallback: title tag
+    const titleMatch = html.match(/<title>([^<]+?)\s*[-–]\s*Apps on Google Play/i);
+    const name = titleMatch ? titleMatch[1].trim() : appId;
+
+    // Fallback: og:image
+    const iconMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/);
+    const icon = iconMatch ? iconMatch[1] : "";
+
+    return { name, developer: "Unknown", icon, score: 0, ratings: 0 };
+  } catch (err) {
+    console.error(`gpGetAppPage error for ${appId}:`, err);
+    return null;
+  }
+}
+
+async function gpSearchApps(query: string): Promise<any[]> {
+  try {
+    const appIds: string[] = [];
+    const isPackageId = /^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(query.trim());
+
+    if (isPackageId) {
+      appIds.push(query.trim());
+    } else {
+      const searchUrl = `https://play.google.com/store/search?q=${encodeURIComponent(query)}&c=apps&hl=pt&gl=br`;
+      const resp = await fetch(searchUrl, { headers: GP_HEADERS });
+      if (!resp.ok) throw new Error(`GP search HTTP ${resp.status}`);
+      const html = await resp.text();
+
+      const seen = new Set<string>();
+      const re = /\/store\/apps\/details\?id=([a-zA-Z0-9._]+)/g;
+      let m;
+      while ((m = re.exec(html)) !== null) {
+        if (!seen.has(m[1])) { seen.add(m[1]); appIds.push(m[1]); }
+        if (appIds.length >= 10) break;
+      }
+    }
+
+    if (appIds.length === 0) return [];
+
+    const settled = await Promise.allSettled(
+      appIds.slice(0, 8).map(async (id) => {
+        const info = await gpGetAppPage(id);
+        if (!info) return null;
+        return { id, name: info.name, developer: info.developer, icon: info.icon, store: "Google Play" as const, storeUrl: `https://play.google.com/store/apps/details?id=${id}` };
+      })
+    );
+
+    return settled
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
+      .map(r => r.value);
+  } catch (err) {
+    console.error("gpSearchApps error:", err);
+    return [];
+  }
+}
+
+async function gpFetchReviews(appId: string, nextToken?: string): Promise<{ reviews: any[]; nextToken?: string }> {
+  try {
+    // Request body for UsvDTd RPC: newest reviews, 100 per page
+    const reqData: any[] = [
+      null, null,
+      [[10, [10, 100]], true, null, [96, 27, 4, 8, 57, 30, 110, 79, 11, 16, 49, 1, 3, 9, 12, 104, 55, 56, 51, 10, 34, 31, 77]],
+      ["pt", "BR"],
+      appId,
+      2, // sort: 2 = newest
+    ];
+    if (nextToken) reqData.push(nextToken);
+
+    const body = new URLSearchParams({
+      "f.req": JSON.stringify([[["UsvDTd", JSON.stringify(reqData), null, "generic"]]]),
+    });
+
+    const resp = await fetch(
+      "https://play.google.com/_/PlayStoreUi/data/batchexecute?rpcids=UsvDTd&hl=pt&gl=BR",
+      {
+        method: "POST",
+        headers: { ...GP_HEADERS, "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: body.toString(),
+      }
+    );
+
+    if (!resp.ok) throw new Error(`batchexecute HTTP ${resp.status}`);
+    const text = await resp.text();
+
+    // Response: )]}'\n\n[[...]] — skip to first [
+    const jsonStart = text.indexOf("[");
+    if (jsonStart === -1) throw new Error("No JSON in batchexecute response");
+    const outer = JSON.parse(text.slice(jsonStart));
+
+    // Recursively find the UsvDTd entry which has the inner JSON string at index 2
+    let innerStr: string | null = null;
+    (function find(arr: any[]) {
+      for (const item of arr) {
+        if (Array.isArray(item)) {
+          if (item[1] === "UsvDTd" && typeof item[2] === "string") { innerStr = item[2]; return; }
+          find(item);
+        }
+      }
+    })(outer);
+
+    if (!innerStr) throw new Error("UsvDTd entry not found in response");
+
+    const inner = JSON.parse(innerStr);
+    const rawReviews: any[] = inner[0] || [];
+    const token: string | undefined = inner[1]?.[1] ?? undefined;
+
+    const reviews = rawReviews
+      .filter((r: any) => Array.isArray(r) && r[2])
+      .map((r: any) => ({
+        id: String(r[0] || ""),
+        author: r[1]?.[0] || "Anonymous",
+        rating: Number(r[2]) || 0,
+        text: String(r[4] || ""),
+        date: r[5]?.[0] ? new Date(r[5][0] * 1000).toISOString() : new Date().toISOString(),
+        version: r[10] || null,
+      }));
+
+    return { reviews, nextToken: token };
+  } catch (err) {
+    console.error("gpFetchReviews error:", err);
+    return { reviews: [] };
+  }
+}
+
+// ========== End Google Play Helpers ==========
+
 const app = new Hono();
 
 // Enable logger
@@ -82,24 +244,7 @@ app.get("/make-server-f4aa3b54/search", async (c) => {
     // Google Play search
     if (store === "playstore" || store === "both") {
       try {
-        const gplay = await import("npm:google-play-scraper");
-        const gpResults = await gplay.default.search({
-          term: query,
-          num: 10,
-          country: "br",
-          lang: "pt",
-          throttle: 10,
-        });
-
-        const gpApps = gpResults.map((app: any) => ({
-          id: app.appId,
-          name: app.title,
-          developer: app.developer,
-          icon: app.icon,
-          store: "Google Play" as const,
-          storeUrl: app.url,
-        }));
-
+        const gpApps = await gpSearchApps(query);
         results.push(...gpApps);
         console.log(`Google Play search returned ${gpApps.length} results`);
       } catch (err) {
@@ -243,84 +388,54 @@ app.get("/make-server-f4aa3b54/app/:store/:id", async (c) => {
         distribution,
       });
     } else if (store === "playstore") {
-      try {
-        const gplay = await import("npm:google-play-scraper");
+      const appInfo = await gpGetAppPage(id);
+      if (!appInfo) return c.json({ error: "App not found on Google Play" }, 404);
 
-        const appInfo = await gplay.default.app({
-          appId: id,
-          country: "br",
-          lang: "pt",
-        });
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      console.log(`Fetching Google Play reviews since ${oneYearAgo.toISOString().split("T")[0]}...`);
 
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        console.log(`Fetching Google Play reviews since ${oneYearAgo.toISOString().split("T")[0]}...`);
+      const allReviews: any[] = [];
+      let nextToken: string | undefined = undefined;
+      let reachedOldReviews = false;
 
-        const allReviews: any[] = [];
-        let nextPaginationToken: string | undefined = undefined;
-        let reachedOldReviews = false;
-        const maxBatches = 20; // up to ~2000 reviews
+      for (let batch = 0; batch < 20 && !reachedOldReviews; batch++) {
+        const { reviews: pageReviews, nextToken: newToken } = await gpFetchReviews(id, nextToken);
 
-        for (let batch = 0; batch < maxBatches && !reachedOldReviews; batch++) {
-          const { data: pageReviews, nextPaginationToken: nextToken } = await gplay.default.reviews({
-            appId: id,
-            sort: gplay.default.sort.NEWEST,
-            num: 100,
-            country: "br",
-            lang: "pt",
-            paginate: true,
-            nextPaginationToken,
-          });
+        if (pageReviews.length === 0) break;
 
-          if (!pageReviews || pageReviews.length === 0) break;
-
-          for (const r of pageReviews) {
-            const reviewDate = new Date(r.date);
-            if (reviewDate < oneYearAgo) {
-              reachedOldReviews = true;
-              break;
-            }
-            allReviews.push({
-              id: r.id,
-              author: r.userName,
-              rating: r.score,
-              text: r.text || "",
-              date: typeof r.date === "string" ? r.date : new Date(r.date).toISOString(),
-              version: r.version || null,
-            });
-          }
-
-          console.log(`✓ Batch ${batch + 1}: +${pageReviews.length} reviews (Total: ${allReviews.length})`);
-
-          if (!nextToken) break;
-          nextPaginationToken = nextToken;
+        for (const r of pageReviews) {
+          if (new Date(r.date) < oneYearAgo) { reachedOldReviews = true; break; }
+          allReviews.push(r);
         }
 
-        console.log(`✓ Total Google Play reviews fetched (last 12 months): ${allReviews.length}`);
+        console.log(`✓ Batch ${batch + 1}: +${pageReviews.length} reviews (Total: ${allReviews.length})`);
 
-        const distribution = [1, 2, 3, 4, 5].map((stars) => ({
-          stars,
-          count: allReviews.filter((r) => r.rating === stars).length,
-        }));
-
-        return c.json({
-          app: {
-            id: appInfo.appId,
-            name: appInfo.title,
-            developer: appInfo.developer,
-            icon: appInfo.icon,
-            store: "Google Play",
-            storeUrl: appInfo.url,
-            averageRating: appInfo.score || 0,
-            totalReviews: appInfo.ratings || 0,
-          },
-          reviews: allReviews,
-          distribution,
-        });
-      } catch (err) {
-        console.error("Google Play details error:", err);
-        return c.json({ error: "Failed to fetch Google Play app details", details: String(err) }, 500);
+        if (!newToken) break;
+        nextToken = newToken;
       }
+
+      console.log(`✓ Total Google Play reviews fetched (last 12 months): ${allReviews.length}`);
+
+      const distribution = [1, 2, 3, 4, 5].map((stars) => ({
+        stars,
+        count: allReviews.filter((r: any) => r.rating === stars).length,
+      }));
+
+      return c.json({
+        app: {
+          id,
+          name: appInfo.name,
+          developer: appInfo.developer,
+          icon: appInfo.icon,
+          store: "Google Play",
+          storeUrl: `https://play.google.com/store/apps/details?id=${id}`,
+          averageRating: appInfo.score,
+          totalReviews: appInfo.ratings,
+        },
+        reviews: allReviews,
+        distribution,
+      });
     }
 
     return c.json({ error: "Invalid store" }, 400);
