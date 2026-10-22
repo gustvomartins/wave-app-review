@@ -53,7 +53,7 @@ The frontend reads its Supabase connection from environment variables (see `.env
 | Variable | Description |
 | --- | --- |
 | `VITE_SUPABASE_URL` | Project URL, e.g. `https://<project-ref>.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | Project anon key (legacy JWT) |
+| `VITE_SUPABASE_ANON_KEY` | Project publishable key (`sb_publishable_...`) or legacy anon key |
 
 Never commit these values. Store them in Vercel Environment Variables (or your team's secret manager) and pull them locally with `vercel env pull .env.local`.
 
