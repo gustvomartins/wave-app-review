@@ -1,0 +1,4 @@
+project_id = "wave-app-review"
+
+[functions.make-server-f4aa3b54]
+entrypoint = "./functions/server/index.tsx"

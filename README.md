@@ -33,43 +33,80 @@ The original design is available on [Figma](https://www.figma.com/design/drZ3dLv
 
 ### Prerequisites
 
--   Node.js (v18 or higher recommended)
--   npm or yarn
+-   Node.js 20 or higher
+-   npm
 
 ### Installation
 
-1.  Clone the repository:
-    ```bash
-    git clone <repository-url>
-    cd wave-app-review
-    ```
-
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-
-### Running the Application
-
-Start the development server:
-
 ```bash
-npm run dev
+git clone https://github.com/gustvomartins/wave-app-review.git
+cd wave-app-review
+npm install
 ```
 
-The application will be available at `http://localhost:5173` (or the port shown in your terminal).
+`npm install` also installs the Husky git hooks (`pre-commit` runs `lint:fix`, `pre-push` runs the build).
 
-### Building for Production
+### Supabase
 
-To build the application for production:
+The frontend reads its Supabase connection from environment variables (see `.env.example`):
+
+| Variable | Description |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Project URL, e.g. `https://<project-ref>.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Project anon key (legacy JWT) |
+
+Never commit these values. Store them in Vercel Environment Variables (or your team's secret manager) and pull them locally with `vercel env pull .env.local`.
+
+Deploy the Edge Function (name and entrypoint are defined in `supabase/config.toml`) and set its secrets with the Supabase CLI:
 
 ```bash
-npm run build
+supabase link --project-ref <project-ref>
+supabase functions deploy make-server-f4aa3b54
+supabase secrets set GEMINI_API_KEY=<value>
 ```
+
+`GEMINI_API_KEY` or `OPENAI_API_KEY` is only needed for AI theme analysis. Keep the source of truth for these keys in your secret manager rather than in shell history or files.
+
+### Scripts
+
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server on `http://localhost:3000` |
+| `npm run build` | Build for production into `build/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` / `npm run lint:fix` | Run ESLint (fix mode) |
+| `npm run typecheck` | Type-check with `tsc --noEmit` |
+| `npm run test` / `npm run test:dev` | Run Vitest once / in watch mode |
 
 ## Project Structure
 
--   `src/components`: UI components and page views.
--   `src/utils`: Utility functions and API helpers.
--   `src/supabase`: Supabase client configuration and types.
--   `src/styles`: Global styles and theme configurations.
+The layout follows the conventions of the [wave-tech-framework](https://github.com/wave-telecom/wave-tech-framework): kebab-case file names, one module per folder with an `index.ts` barrel, specs under `tests/` mirroring `src/`, and shared GitHub templates and CI.
+
+```
+.github/                  Issue/PR templates and the Node.js CI workflow
+.husky/                   Git hooks (pre-commit, pre-push)
+docs/                     Guidelines and attributions
+src/
+  app.tsx                 Root component and page routing
+  main.tsx                Entry point
+  clients/
+    app-review-api/       Client and types for the App Review edge function
+    supabase/             Supabase connection config (env-based)
+  components/
+    apps/                 App search, slots and the add-app dialog
+    filters/              Date range and version filters
+    layout/               Sidebar, navigation, logo and status banner
+    ratings/              Rating summary, distribution and stars
+    reviews/              Review list
+    ui/                   shadcn/ui primitives
+  pages/                  Page-level views (summary, reviews, ratings, sentiment, comparison, ...)
+    clustering/           Words, topics, phrases and themes clustering pages
+  styles/                 Compiled Tailwind CSS and theme globals
+  utils/                  Sentiment and clustering analyzers
+supabase/
+  config.toml             Edge Function name and entrypoint
+  functions/server/       Supabase Edge Function (Deno + Hono)
+tests/                    Vitest specs mirroring src/
+```
+
+Import across modules through the `@/` alias and the module barrel (e.g. `import { StarRating } from '@/components/ratings'`); use relative imports only within the same folder.
