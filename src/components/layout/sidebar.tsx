@@ -127,6 +127,7 @@ export function Sidebar({
               isLoading={isLoadingPlayStore}
               onAddClick={onAddPlayStore}
               onRemoveClick={onRemovePlayStore}
+              disabled
             />
           </div>
 
