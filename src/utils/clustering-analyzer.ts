@@ -1,4 +1,5 @@
 import { analyzeSentiment } from './sentiment-analyzer';
+import { functionsBaseUrl, supabaseHeaders } from '@/clients/supabase';
 
 export interface WordCluster {
   word: string;
@@ -197,18 +198,16 @@ export function extractPhraseClusters(
 // Theme analysis is now handled by AI on the server
 // This function is deprecated - use the API endpoint instead
 export async function extractThemeClusters(
-  reviews: Array<{ id: string; text: string; rating: number; version?: string }>,
-  projectId: string,
-  publicAnonKey: string
+  reviews: Array<{ id: string; text: string; rating: number; version?: string }>
 ): Promise<ThemeCluster[]> {
   try {
     const response = await fetch(
-      `https://${projectId}.supabase.co/functions/v1/make-server-f4aa3b54/analyze-themes`,
+      `${functionsBaseUrl}/analyze-themes`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
+          ...supabaseHeaders,
         },
         body: JSON.stringify({ reviews }),
       }

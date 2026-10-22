@@ -9,7 +9,6 @@ import { StarRating } from '@/components/ratings';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ThemeCluster } from '@/utils';
 import { extractThemeClusters } from '@/utils';
-import { projectId, publicAnonKey } from '@/clients/supabase';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -120,7 +119,7 @@ export function ClusteringThemesPage({ appStoreData, playStoreData }: Clustering
     setError(null);
 
     try {
-      const clusters = await extractThemeClusters(filteredReviews, projectId, publicAnonKey);
+      const clusters = await extractThemeClusters(filteredReviews);
       setThemeClusters(clusters);
       setHasAnalyzed(true);
     } catch (err) {

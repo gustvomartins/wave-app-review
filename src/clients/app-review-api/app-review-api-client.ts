@@ -1,18 +1,18 @@
-import { projectId, publicAnonKey } from '@/clients/supabase';
+import { functionsBaseUrl, isSupabaseConfigured, supabaseConfigError, supabaseHeaders } from '@/clients/supabase';
 import type { AppDetails, AppResult } from './types';
-
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-f4aa3b54`;
 
 // Test server connectivity
 export async function testServerConnection(): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured) {
+    return { ok: false, error: supabaseConfigError };
+  }
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const response = await fetch(`${API_BASE}/health`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-      },
+    const response = await fetch(`${functionsBaseUrl}/health`, {
+      headers: supabaseHeaders,
       signal: controller.signal,
     });
 
@@ -39,10 +39,8 @@ export async function searchApps(query: string, store = 'both'): Promise<AppResu
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&store=${store}`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-      },
+    const response = await fetch(`${functionsBaseUrl}/search?q=${encodeURIComponent(query)}&store=${store}`, {
+      headers: supabaseHeaders,
       signal: controller.signal,
     });
 
@@ -82,10 +80,8 @@ export async function getAppDetails(store: string, id: string): Promise<AppDetai
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for details
 
     const storeParam = store === 'App Store' ? 'appstore' : 'playstore';
-    const response = await fetch(`${API_BASE}/app/${storeParam}/${id}`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-      },
+    const response = await fetch(`${functionsBaseUrl}/app/${storeParam}/${id}`, {
+      headers: supabaseHeaders,
       signal: controller.signal,
     });
 

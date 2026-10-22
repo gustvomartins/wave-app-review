@@ -46,6 +46,27 @@ npm install
 
 `npm install` also installs the Husky git hooks (`pre-commit` runs `lint:fix`, `pre-push` runs the build).
 
+### Supabase
+
+The frontend reads its Supabase connection from environment variables (see `.env.example`):
+
+| Variable | Description |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Project URL, e.g. `https://<project-ref>.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | Project anon key (legacy JWT) |
+
+Never commit these values. Store them in Vercel Environment Variables (or your team's secret manager) and pull them locally with `vercel env pull .env.local`.
+
+Deploy the Edge Function (name and entrypoint are defined in `supabase/config.toml`) and set its secrets with the Supabase CLI:
+
+```bash
+supabase link --project-ref <project-ref>
+supabase functions deploy make-server-f4aa3b54
+supabase secrets set GEMINI_API_KEY=<value>
+```
+
+`GEMINI_API_KEY` or `OPENAI_API_KEY` is only needed for AI theme analysis. Keep the source of truth for these keys in your secret manager rather than in shell history or files.
+
 ### Scripts
 
 | Script | Description |
@@ -70,7 +91,7 @@ src/
   main.tsx                Entry point
   clients/
     app-review-api/       Client and types for the App Review edge function
-    supabase/             Supabase project info
+    supabase/             Supabase connection config (env-based)
   components/
     apps/                 App search, slots and the add-app dialog
     filters/              Date range and version filters
@@ -83,6 +104,7 @@ src/
   styles/                 Compiled Tailwind CSS and theme globals
   utils/                  Sentiment and clustering analyzers
 supabase/
+  config.toml             Edge Function name and entrypoint
   functions/server/       Supabase Edge Function (Deno + Hono)
 tests/                    Vitest specs mirroring src/
 ```
