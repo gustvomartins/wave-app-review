@@ -28,10 +28,10 @@ const menuItems = [
 ];
 
 const clusteringItems = [
-  { id: 'clustering-words', label: 'Palavras', icon: Type },
-  { id: 'clustering-topics', label: 'Tópicos', icon: Network },
-  { id: 'clustering-phrases', label: 'Frases', icon: MessageCircle },
-  { id: 'clustering-themes', label: 'Temas', icon: Layers },
+  { id: 'clustering-words', label: 'Palavras', icon: Type, disabled: false },
+  { id: 'clustering-topics', label: 'Tópicos', icon: Network, disabled: false },
+  { id: 'clustering-phrases', label: 'Frases', icon: MessageCircle, disabled: false },
+  { id: 'clustering-themes', label: 'Temas', icon: Layers, disabled: true },
 ];
 
 export function Sidebar({
@@ -179,17 +179,21 @@ export function Sidebar({
                     return (
                       <button
                         key={item.id}
-                        onClick={() => handlePageChange(item.id)}
+                        onClick={() => !item.disabled && handlePageChange(item.id)}
+                        disabled={item.disabled}
                         className={`
                         w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all
                         ${isActive
                             ? 'bg-sidebar-primary text-sidebar-primary-foreground font-bold'
-                            : 'hover:bg-sidebar-accent text-sidebar-foreground'
+                            : item.disabled
+                              ? 'text-muted-foreground/50 cursor-not-allowed'
+                              : 'hover:bg-sidebar-accent text-sidebar-foreground'
                           }
                       `}
                       >
                         <Icon size={20} />
                         <span className="text-[14px]">{item.label}</span>
+                        {item.disabled && <span className="ml-auto text-xs">Em breve</span>}
                       </button>
                     );
                   })}
